@@ -1,0 +1,332 @@
+
+#------------------------------------------------------------
+# Start parameters
+start_date                    <-"2009-01-01"
+end_date                      <-"2016-12-25"
+number_of_indices             <- 14
+long_ma                       <- 35
+short_ma                      <- 2
+leverage                      <- 1
+initial_capital               <- 1
+trading_day                   <- "poniedziałek"
+transaction_cost              <- 0.0025
+draw_parameter                <- 5
+draw_lag                      <- 45
+min_lev                       <- 10
+#------------------------------------------------------------
+
+Data <- seq.Date(as.Date(start_date), as.Date(end_date),"days")
+
+# merging 
+
+Data <- seq.Date(as.Date(start_date), as.Date(end_date),"days")
+weekday<- weekdays(Data )
+period <- data.frame(Data,weekday)
+
+indices <-
+  sqldf('
+        select *
+        from period p
+        left join kospi k on k.date=p.Data
+        left join rts r on r.date=p.Data
+        left join wig20 w on w.date=p.Data
+        left join ftse f on f.date=p.Data
+        left join bvp b on b.date=p.Data
+        left join bux b2 on b2.date=p.Data
+        left join aus a on a.date=p.Data
+        left join chn c on c.date=p.Data
+        left join ita i on i.date=p.Data
+        left join spx s on s.date=p.Data
+        left join sensex s2 on s2.date=p.Data
+        left join mex m on m.date=p.Data
+        left join nikkei n on n.date=p.Data
+        left join dax d on d.date=p.Data
+        
+        order by p.Data
+        ')
+
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+indices$date <-NULL
+
+# deleting obs for Saturday and Sunday
+
+indices<-indices[ ! indices$weekday %in% c("sobota", "niedziela"), ]
+
+
+
+# interpolation of missing values !!! na.locf convert all date to char because it does not support DF
+
+interpolation<-na.locf(indices[20:nrow(indices),3:73])
+indices<-data.frame(indices[20:nrow(indices),1:2],interpolation) # Be aware of different number of rows in DF
+rownames(indices) <- as.Date(indices$Data)
+
+#removing first 5 rows
+indices<-indices[-c(1:5),]
+
+# evaluating artificial index return 
+
+lagpad <- function(x, k) {  c(rep(NA, k), x)[1 : length(x)] } # function
+
+#1 day return
+
+indices$ret1_rts   <- indices$RTS.Close   /lagpad(indices$RTS.Close     ,1)
+indices$ret1_wig20 <- indices$WIG20.Close /lagpad(indices$WIG20.Close   ,1)
+indices$ret1_bvp   <- indices$BVP.Close   /lagpad(indices$BVP.Close     ,1)
+indices$ret1_bux   <- indices$BUX.Close   /lagpad(indices$BUX.Close     ,1)
+indices$ret1_chn   <- indices$CHN.Close   /lagpad(indices$CHN.Close     ,1)
+indices$ret1_sensex<- indices$SENSEX.Close/lagpad(indices$SENSEX.Close  ,1)
+indices$ret1_mex   <- indices$MEX.Close   /lagpad(indices$MEX.Close     ,1)
+
+
+indices$ret1_kospi <- indices$KOSPI.Close /lagpad(indices$KOSPI.Close   ,1)
+indices$ret1_ftse  <- indices$FTSE.Close  /lagpad(indices$FTSE.Close    ,1)
+indices$ret1_aus   <- indices$AUS.Close   /lagpad(indices$AUS.Close     ,1)
+indices$ret1_ita   <- indices$ITA.Close   /lagpad(indices$ITA.Close     ,1)
+indices$ret1_nikkei<- indices$NIKKEI.Close/lagpad(indices$NIKKEI.Close  ,1)
+indices$ret1_dax   <- indices$DAX.Close   /lagpad(indices$DAX.Close     ,1)
+indices$ret1_spx   <- indices$SPX.Close   /lagpad(indices$SPX.Close     ,1)
+
+
+
+
+indices$ret1_rts[  is.na(indices$ret1_rts)]<-1
+indices$ret1_wig20[is.na(indices$ret1_wig20)]<-1
+indices$ret1_kospi[is.na(indices$ret1_kospi)]<-1
+indices$ret1_ftse[ is.na(indices$ret1_ftse)]<-1
+indices$ret1_bvp[  is.na(indices$ret1_bvp)]<-1
+indices$ret1_bux[  is.na(indices$ret1_bux)]<-1
+indices$ret1_aus[  is.na(indices$ret1_aus)]<-1
+indices$ret1_chn[  is.na(indices$ret1_chn)]<-1
+indices$ret1_ita[  is.na(indices$ret1_ita)]<-1
+indices$ret1_nikkei[  is.na(indices$ret1_nikkei)]<-1
+indices$ret1_dax[  is.na(indices$ret1_dax)]<-1
+indices$ret1_sensex[  is.na(indices$ret1_sensex)]<-1
+indices$ret1_spx[  is.na(indices$ret1_spx)]<-1
+indices$ret1_mex[  is.na(indices$ret1_mex)]<-1
+
+#74:81 rozwijajace
+#82:87 rozwiniete
+indices$mean_ret<- rowMeans(indices[,74:80], na.rm=TRUE)-1
+
+#1 week return
+
+indices$ret5_rts   <- (indices$RTS.High   + indices$RTS.Low  ) /(lagpad(indices$RTS.High     ,5) + lagpad(indices$RTS.Low     ,5))
+indices$ret5_wig20 <- (indices$WIG20.High + indices$WIG20.Low) /(lagpad(indices$WIG20.High   ,5) + lagpad(indices$WIG20.Low   ,5))
+indices$ret5_bvp   <- (indices$BVP.High   + indices$BVP.Low  ) /(lagpad(indices$BVP.High     ,5) + lagpad(indices$BVP.Low     ,5))
+indices$ret5_bux   <- (indices$BUX.High   + indices$BUX.Low  ) /(lagpad(indices$BUX.High     ,5) + lagpad(indices$BUX.Low     ,5))
+indices$ret5_chn   <- (indices$CHN.High   + indices$CHN.Low  ) /(lagpad(indices$CHN.High     ,5) + lagpad(indices$CHN.Low     ,5))
+indices$ret5_sensex<- (indices$SENSEX.High+ indices$SENSEX.Low) /(lagpad(indices$SENSEX.High ,5) + lagpad(indices$SENSEX.Low  ,5))
+indices$ret5_mex   <- (indices$MEX.High   + indices$MEX.Low  ) /(lagpad(indices$MEX.High     ,5) + lagpad(indices$MEX.Low     ,5))
+
+indices$ret5_ftse  <- (indices$FTSE.High  + indices$FTSE.Low ) /(lagpad(indices$FTSE.High    ,5) + lagpad(indices$FTSE.Low    ,5))
+indices$ret5_aus   <- (indices$AUS.High   + indices$AUS.Low  ) /(lagpad(indices$AUS.High     ,5) + lagpad(indices$AUS.Low     ,5))
+indices$ret5_ita   <- (indices$ITA.High   + indices$ITA.Low  ) /(lagpad(indices$ITA.High     ,5) + lagpad(indices$ITA.Low     ,5))
+indices$ret5_nikkei<- (indices$NIKKEI.High+ indices$NIKKEI.Low)/(lagpad(indices$NIKKEI.High  ,5) + lagpad(indices$NIKKEI.Low  ,5))
+indices$ret5_dax   <- (indices$DAX.High   + indices$DAX.Low  ) /(lagpad(indices$DAX.High     ,5) + lagpad(indices$DAX.Low     ,5))
+indices$ret5_spx   <- (indices$SPX.High   + indices$SPX.Low  ) /(lagpad(indices$SPX.High     ,5) + lagpad(indices$SPX.Low     ,5))
+indices$ret5_kospi <- (indices$KOSPI.High + indices$KOSPI.Low) /(lagpad(indices$KOSPI.High   ,5) + lagpad(indices$KOSPI.Low   ,5))
+
+
+indices$ret5_rts[  is.na(indices$ret5_rts)]<-1
+indices$ret5_wig20[is.na(indices$ret5_wig20)]<-1
+indices$ret5_kospi[is.na(indices$ret5_kospi)]<-1
+indices$ret5_ftse[ is.na(indices$ret5_ftse)]<-1
+indices$ret5_bvp[  is.na(indices$ret5_bvp)]<-1
+indices$ret5_bux[  is.na(indices$ret5_bux)]<-1
+indices$ret5_aus[  is.na(indices$ret5_aus)]<-1
+indices$ret5_chn[  is.na(indices$ret5_chn)]<-1
+indices$ret5_ita[  is.na(indices$ret5_ita)]<-1
+
+indices$ret5_nikkei[  is.na(indices$ret5_nikkei)]<-1
+indices$ret5_dax[  is.na(indices$ret5_dax)]<-1
+indices$ret5_sensex[  is.na(indices$ret5_sensex)]<-1
+indices$ret5_spx[  is.na(indices$ret5_spx)]<-1
+indices$ret5_mex[  is.na(indices$ret5_mex)]<-1
+
+#89:96 rozwijajšce
+#97:102 rozwinięte
+
+indices$weekly_mean_ret<-rowMeans(indices[,89:95], na.rm=TRUE)-1
+
+indices$weekly_mean_ret<-ifelse(indices$weekday %in% c(trading_day),indices$weekly_mean_ret,0)
+
+indices$weekly_mean_ret_a<-rowMeans(indices[,89:95], na.rm=TRUE)-rowMeans(indices[,96:102], na.rm=TRUE)
+
+indices$weekly_mean_ret_a<-ifelse(indices$weekday %in% c(trading_day),indices$weekly_mean_ret_a,0)
+
+#removing first 5 rows
+indices<-indices[-c(1:5),]
+
+# all time return - indicator assumes sums of returns, not multiplication
+indices$cumulative_return <- cumsum(indices$mean_ret) +1
+
+
+# Volume 
+indices$Volume <- indices$WIG20.Vol + indices$FTSE.Vol + indices$KOSPI.Vol + indices$BVP.Vol + indices$BUX.Vol
+
+# moving average
+#EVWMA - mało transakcji
+
+indices$mov_ave_long  <- SMA(indices[,"cumulative_return"], long_ma)
+indices$mov_ave_short <- SMA(indices[,"cumulative_return"], short_ma)
+
+
+# Drawdown across indices
+
+indices$MDD_rts     <-(lagpad(indices$RTS.Close   ,6)/  lagpad(indices$RTS.Close   ,36))
+indices$MDD_wig20   <-(lagpad(indices$WIG20.Close ,6)/  lagpad(indices$WIG20.Close ,36))
+indices$MDD_bvp     <-(lagpad(indices$BVP.Close   ,6)/  lagpad(indices$BVP.Close   ,36))
+indices$MDD_bux     <-(lagpad(indices$BUX.Close   ,6)/  lagpad(indices$BUX.Close   ,36))
+indices$MDD_chn     <-(lagpad(indices$CHN.Close   ,6)/  lagpad(indices$CHN.Close   ,36))
+indices$MDD_sensex  <-(lagpad(indices$SENSEX.Close,6)/  lagpad(indices$SENSEX.Close,36))
+indices$MDD_mex     <-(lagpad(indices$MEX.Close   ,6)/  lagpad(indices$MEX.Close   ,36))
+
+
+# Rank MDD
+
+ranking<-indices[,109:115]
+indices<-data.frame(indices[,1:108],t(apply(-ranking, 1, rank, ties.method='min')))
+
+indices$ret5_rts   <- ifelse(indices$MDD_rts   >=2, indices$ret5_rts   -1,0)
+indices$ret5_wig20 <- ifelse(indices$MDD_wig20 >=2, indices$ret5_wig20 -1,0)
+indices$ret5_bvp   <- ifelse(indices$MDD_bvp   >=2, indices$ret5_bvp   -1,0)
+indices$ret5_bux   <- ifelse(indices$MDD_bux   >=2, indices$ret5_bux   -1,0)
+indices$ret5_chn   <- ifelse(indices$MDD_chn   >=2, indices$ret5_chn   -1,0)
+indices$ret5_sensex<- ifelse(indices$MDD_sensex>=2, indices$ret5_sensex-1,0)
+indices$ret5_mex   <- ifelse(indices$MDD_mex   >=2, indices$ret5_mex   -1,0)
+
+indices$weekly_mean_ret_2<-rowSums(indices[,89:95], na.rm=TRUE)/6
+
+indices$weekly_mean_ret_2<-ifelse(indices$weekday %in% c(trading_day),indices$weekly_mean_ret_2,0)
+
+#removing first 5 rows
+indices<-indices[-c(1:5),]
+
+# all time return - indicator assumes sums of returns, not multiplication
+indices$cumulative_return <- cumsum(indices$mean_ret) +1
+
+
+#strategy
+indices$strategy<-ifelse(indices$mov_ave_short>indices$mov_ave_long,1,0)
+indices$strategy<-ifelse(is.na(indices$strategy),0,indices$strategy)
+
+
+# Let's assume that transaction takes place on next day after signal
+indices$transaction<-ifelse(indices$weekday %in% c(trading_day),ifelse(lagpad(indices$strategy,1)==1 & lagpad(indices$strategy,6)==0,1,ifelse(lagpad(indices$strategy,1)==0 & lagpad(indices$strategy,6)==1,-1,0)),0)
+indices$transaction<-ifelse(is.na(indices$transaction),0,indices$transaction)
+indices$position<-cumsum(indices$transaction)
+indices$transaction_cost <- ifelse(lagpad(indices$transaction,5)==1,transaction_cost,0)
+indices$transaction_cost<-ifelse(is.na(indices$transaction_cost),0,indices$transaction_cost)
+
+
+
+# Capital
+indices$strategy_ret_w<-ifelse(lagpad(indices$position,1)==1,indices$weekly_mean_ret,0)
+indices$strategy_ret_w<- ifelse(is.na(indices$strategy_ret_w),0,indices$strategy_ret_w)
+
+indices$strategy_ret_d<-ifelse(lagpad(indices$position,1)==1,indices$mean_ret,0)
+indices$strategy_ret_d<- ifelse(is.na(indices$strategy_ret_d),0,indices$strategy_ret_d)
+
+indices$strategy_ret_2<-ifelse(lagpad(indices$position,1)==1,indices$weekly_mean_ret_2,0)
+indices$strategy_ret_2<- ifelse(is.na(indices$strategy_ret_2),0,indices$strategy_ret_2)
+indices$strategy_cum_ret_2 <- initial_capital*cumprod(indices$strategy_ret_2+1)
+
+
+
+
+indices$strategy_hidden_ret<-ifelse(lagpad(indices$position,1)==1,indices$mean_ret,0)-indices$transaction_cost
+indices$strategy_hidden_ret<- ifelse(is.na(indices$strategy_hidden_ret),0,indices$strategy_hidden_ret)
+
+
+indices$strategy_cum_hidden_ret <- initial_capital*cumprod(indices$strategy_hidden_ret+1)
+
+indices$mechanism_param <- indices$strategy_cum_hidden_ret-SMA(indices$strategy_cum_hidden_ret,50)
+indices$mechanism_param <- ifelse(indices$mechanism_param>0,indices$mechanism_param,0)
+
+indices$mechanism_param <- SMA(indices$mechanism_param,1)*25+1
+indices$mechanism_param <- ifelse(is.na(indices$mechanism_param),1,indices$mechanism_param)
+indices$mechanism_param <- lagpad(indices$mechanism_param,6)
+indices$mechanism_param <- ifelse(is.na(indices$mechanism_param),1.5,indices$mechanism_param)
+
+indices$draw_parameter  <- draw_parameter/(1/indices$mechanism_param)
+indices$min_lev         <- min_lev*(1/indices$mechanism_param)-1
+
+#strategy drawdown
+
+indices$drawdown<- (indices$strategy_cum_hidden_ret-cummax(indices$strategy_cum_hidden_ret))/cummax(indices$strategy_cum_hidden_ret)
+indices$drawdown_l1<-lagpad(indices$drawdown,draw_lag)
+indices$drawdown_l1<- ifelse(is.na(indices$drawdown_l1),0,indices$drawdown_l1)
+indices$leverage<-min_lev
+indices$leverage <- 3# 1.5+50*((lagpad(indices$mov_ave_short,6)-lagpad(indices$mov_ave_long,6))/lagpad(indices$mov_ave_long,6))
+indices$leverage<- ifelse(is.na(indices$leverage),2,indices$leverage)
+
+
+
+indices$leverage_a <- ifelse(indices$position==1,indices$leverage,0)
+indices$leverage_a_cost <- indices$leverage_a-lagpad(indices$leverage_a,5)
+indices$leverage_a_cost<- ifelse(is.na(indices$leverage_a_cost),0,indices$leverage_a_cost)
+indices$leverage_a_cost<-ifelse(indices$weekday %in% c(trading_day),indices$leverage_a_cost,0)
+#ifelse(indices$drawdown_l1<-0.05,indices$drawdown_l1,0)
+indices$transaction_cost_act<- ifelse(indices$leverage_a_cost>0,indices$leverage_a_cost,0)*transaction_cost
+indices$transaction_cost_cum<-cumsum(indices$transaction_cost_act)
+
+indices$strategy_cum_ret_actual_w <- initial_capital*cumprod(1+indices$strategy_ret_w*indices$leverage-indices$transaction_cost_act)
+indices$drawdown_actual_w<- (indices$strategy_cum_ret_actual_w-cummax(indices$strategy_cum_ret_actual_w))/cummax(indices$strategy_cum_ret_actual_w)
+
+indices$strategy_cum_ret_actual_d <- initial_capital*cumprod(1+indices$strategy_ret_d*indices$leverage-indices$transaction_cost_act)
+indices$drawdown_actual_d<- (indices$strategy_cum_ret_actual_d-cummax(indices$strategy_cum_ret_actual_d))/cummax(indices$strategy_cum_ret_actual_d)
+
+
+
+indices$strategy_cum_ret_actual_2 <- initial_capital*cumprod(1+indices$strategy_ret_2*indices$leverage-indices$transaction_cost_act)
+indices$drawdown_actual_2<- (indices$strategy_cum_ret_actual_2-cummax(indices$strategy_cum_ret_actual_2))/cummax(indices$strategy_cum_ret_actual_2)
+
+indices$arbitrage <- cumprod(1+indices$weekly_mean_ret_a)
+indices$drawdown_arbitrage<- (indices$arbitrage-cummax(indices$arbitrage))/cummax(indices$arbitrage)
+
+
+# chart of indicator
+
+p1 <- ggplot(data = indices, aes(x=Data))+ geom_line(aes(y = indices$strategy_cum_ret_actual_2, colour = "daily")) + geom_line(aes(y = indices$strategy_cum_hidden_ret, colour = "strategia"))  + geom_line(aes(y = strategy_cum_ret_actual_w, colour = "weekly"))   + scale_y_log10()
+
+p2 <- ggplot(data = indices, aes(x=Data)) +  geom_line(aes(y = indices$drawdown_actual_2, colour = "DD_daily")) +geom_line(aes(y = indices$drawdown_actual_w, colour = "DD_weekly")) 
+
+p3 <- ggplot(data = indices, aes(x=Data)) + geom_line(aes(y = mov_ave_short, colour = "short")) + geom_line(aes(y = mov_ave_long, colour = "long")) +geom_line(aes(y = mov_ave_short, colour = "short"))+geom_line(aes(y = cumulative_return, colour = "cumulative_return"))
+
+p4 <- ggplot(data = indices, aes(x=Data)) +  geom_line(aes(y = indices$leverage_a, colour = "leve")) 
+
+p5 <- ggplot(data = indices, aes(x=Data)) +  geom_line(aes(y = indices$draw_param , colour = "draw_param"))+  geom_line(aes(y = indices$min_lev , colour = "min_lev"))
+
+p6 <- ggplot(data = indices, aes(x=Data)) +  geom_line(aes(y = SMA(indices$strategy_cum_hidden_ret,50), colour = "draw_pa")) +  geom_line(aes(y = indices$strategy_cum_hidden_ret, colour = "draw_param"))
+
+p7 <- ggplot(data = indices, aes(x=Data)) +  geom_line(aes(y = indices$mechanism_param, colour = "mech")) 
+
+
+multiplot(p1, p2,p3)
+
+#multiplot(p6, p4)
+
+
+Profit<- tail(indices$strategy_cum_ret_actual_w, n=1)-1
+MDD <- min(indices$drawdown_actual_d)
+transaction_cost2 <- max(indices$transaction_cost_cum)
+
+Profit
+MDD
+transaction_cost2
+
+# export to excel
+
+#write.csv(indices, "indices.csv")
