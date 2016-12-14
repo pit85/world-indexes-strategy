@@ -1,0 +1,172 @@
+library(RCurl)
+library(PerformanceAnalytics)
+library(sqldf)
+library(plyr)
+library(quantmod) 
+library(ggplot2)
+library(TTR) 
+library(grid)
+
+
+# links
+
+
+url_wig20   <- getURL("http://stooq.pl/q/d/l/?s=wig20&i=d")
+url_kospi   <- getURL("http://stooq.pl/q/d/l/?s=^kospi&i=d")
+url_rts     <- getURL("http://stooq.pl/q/d/l/?s=^rts&i=d")
+url_ftse    <- getURL("http://stooq.pl/q/d/l/?s=^ftm&i=d")
+url_bvp     <- getURL("http://stooq.pl/q/d/l/?s=^bvp&i=d")
+url_bux     <- getURL("http://stooq.pl/q/d/l/?s=^bux&i=d")
+url_aus     <- getURL("http://stooq.pl/q/d/l/?s=^aor&i=d")
+url_chn     <- getURL("http://stooq.pl/q/d/l/?s=^hsi&i=d")
+url_ita     <- getURL("http://stooq.pl/q/d/l/?s=^fmib&i=d")
+url_spx     <- getURL("http://stooq.pl/q/d/l/?s=^spx&i=d")
+url_sensex  <- getURL("http://stooq.pl/q/d/l/?s=^snx&i=d")
+url_mex     <- getURL("http://stooq.pl/q/d/l/?s=^ipc&i=d")
+url_nikkei  <- getURL("http://stooq.pl/q/d/l/?s=nk.f&i=d")
+url_dax     <- getURL("http://stooq.pl/q/d/l/?s=^dax&i=d")
+
+
+# tables with indexes
+spx   <- read.csv(textConnection(url_spx))
+sensex<- read.csv(textConnection(url_sensex))
+mex   <- read.csv(textConnection(url_mex))
+nikkei<- read.csv(textConnection(url_nikkei))
+dax   <- read.csv(textConnection(url_dax))
+wig20 <- read.csv(textConnection(url_wig20))
+kospi <- read.csv(textConnection(url_kospi))
+rts   <- read.csv(textConnection(url_rts))
+ftse  <- read.csv(textConnection(url_ftse))
+bvp   <- read.csv(textConnection(url_bvp))
+bux   <- read.csv(textConnection(url_bux))
+aus   <- read.csv(textConnection(url_aus))
+chn   <- read.csv(textConnection(url_chn))
+ita   <- read.csv(textConnection(url_ita))
+
+# renaming variables
+
+names(spx)[2] <- "SPX.Open"
+names(spx)[3] <- "SPX.High"
+names(spx)[4] <- "SPX.Low"
+names(spx)[5] <- "SPX.Close"
+names(spx)[6] <- "SPX.Vol"
+spx$date=as.Date(spx$Data)
+spx$Wolumen <- NULL
+spx$Data <- NULL
+
+names(sensex)[2] <- "SENSEX.Open"
+names(sensex)[3] <- "SENSEX.High"
+names(sensex)[4] <- "SENSEX.Low"
+names(sensex)[5] <- "SENSEX.Close"
+names(sensex)[6] <- "SENSEX.Vol"
+sensex$date=as.Date(sensex$Data)
+sensex$Wolumen <- NULL
+sensex$Data <- NULL
+
+names(mex)[2] <- "MEX.Open"
+names(mex)[3] <- "MEX.High"
+names(mex)[4] <- "MEX.Low"
+names(mex)[5] <- "MEX.Close"
+names(mex)[6] <- "MEX.Vol"
+mex$date=as.Date(mex$Data)
+mex$Wolumen <- NULL
+mex$Data <- NULL
+
+names(nikkei)[2] <- "NIKKEI.Open"
+names(nikkei)[3] <- "NIKKEI.High"
+names(nikkei)[4] <- "NIKKEI.Low"
+names(nikkei)[5] <- "NIKKEI.Close"
+names(nikkei)[6] <- "NIKKEI.Vol"
+nikkei$date=as.Date(nikkei$Data)
+nikkei$Wolumen <- NULL
+nikkei$Data <- NULL
+
+names(dax)[2] <- "DAX.Open"
+names(dax)[3] <- "DAX.High"
+names(dax)[4] <- "DAX.Low"
+names(dax)[5] <- "DAX.Close"
+names(dax)[6] <- "DAX.Vol"
+dax$date=as.Date(dax$Data)
+dax$Wolumen <- NULL
+dax$Data <- NULL
+
+names(wig20)[2] <- "WIG20.Open"
+names(wig20)[3] <- "WIG20.High"
+names(wig20)[4] <- "WIG20.Low"
+names(wig20)[5] <- "WIG20.Close"
+names(wig20)[6] <- "WIG20.Vol"
+wig20$date=as.Date(wig20$Data)
+wig20$Wolumen <- NULL
+wig20$Data <- NULL
+
+names(kospi)[2] <- "KOSPI.Open"
+names(kospi)[3] <- "KOSPI.High"
+names(kospi)[4] <- "KOSPI.Low"
+names(kospi)[5] <- "KOSPI.Close"
+names(kospi)[6] <- "KOSPI.Vol"
+kospi$date=as.Date(kospi$Data)
+kospi$Wolumen <- NULL
+kospi$Data <- NULL
+
+names(rts)[2] <- "RTS.Open"
+names(rts)[3] <- "RTS.High"
+names(rts)[4] <- "RTS.Low"
+names(rts)[5] <- "RTS.Close"
+names(rts)[6] <- "RTS.Vol"
+rts$date=as.Date(rts$Data)
+rts$Wolumen <- NULL
+rts$Data <- NULL
+
+names(ftse)[2] <- "FTSE.Open"
+names(ftse)[3] <- "FTSE.High"
+names(ftse)[4] <- "FTSE.Low"
+names(ftse)[5] <- "FTSE.Close"
+names(ftse)[6] <- "FTSE.Vol"
+ftse$date=as.Date(ftse$Data)
+ftse$Wolumen <- NULL
+ftse$Data <- NULL
+
+names(bvp)[2] <- "BVP.Open"
+names(bvp)[3] <- "BVP.High"
+names(bvp)[4] <- "BVP.Low"
+names(bvp)[5] <- "BVP.Close"
+names(bvp)[6] <- "BVP.Vol"
+bvp$date=as.Date(bvp$Data)
+bvp$Wolumen <- NULL
+bvp$Data <- NULL
+
+names(bux)[2] <- "BUX.Open"
+names(bux)[3] <- "BUX.High"
+names(bux)[4] <- "BUX.Low"
+names(bux)[5] <- "BUX.Close"
+names(bux)[6] <- "BUX.Vol"
+bux$date=as.Date(bux$Data)
+bux$Wolumen <- NULL
+bux$Data <- NULL
+
+names(aus)[2] <- "AUS.Open"
+names(aus)[3] <- "AUS.High"
+names(aus)[4] <- "AUS.Low"
+names(aus)[5] <- "AUS.Close"
+names(aus)[6] <- "AUS.Vol"
+aus$date=as.Date(aus$Data)
+aus$Wolumen <- NULL
+aus$Data <- NULL
+
+names(chn)[2] <- "CHN.Open"
+names(chn)[3] <- "CHN.High"
+names(chn)[4] <- "CHN.Low"
+names(chn)[5] <- "CHN.Close"
+names(chn)[6] <- "CHN.Vol"
+chn$date=as.Date(chn$Data)
+chn$Wolumen <- NULL
+chn$Data <- NULL
+
+names(ita)[2] <- "ITA.Open"
+names(ita)[3] <- "ITA.High"
+names(ita)[4] <- "ITA.Low"
+names(ita)[5] <- "ITA.Close"
+names(ita)[6] <- "ITA.Vol"
+ita$date=as.Date(ita$Data)
+ita$Wolumen <- NULL
+ita$Data <- NULL
